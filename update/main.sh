@@ -28,13 +28,17 @@ fi
 if [ "$emonSD_pi_env" = "1" ]; then
     # Check if we have an emonpi LCD connected, 
     # if we do assume EmonPi hardware else assume RFM69Pi
-    lcd27=$(sudo $openenergymonitor_dir/emonpi/lcd/emonPiLCD_detect.sh 27 1)
-    lcd3f=$(sudo $openenergymonitor_dir/emonpi/lcd/emonPiLCD_detect.sh 3f 1)
-
-    if [ $lcd27 == 'True' ] || [ $lcd3f == 'True' ]; then
-        hardware="EmonPi"
-    else
+    
+    # Update emonpi repository if new emonPiLCD_detect.py script is not available
+    if [ ! -f $openenergymonitor_dir/emonpi/lcd/emonPiLCD_detect.py ]; then
+        git -C $openenergymonitor_dir/emonpi pull
+    fi
+    lcd_address=$($openenergymonitor_dir/emonpi/lcd/emonPiLCD_detect.py)
+    
+    if [ $lcd_address == 'False' ]; then
         hardware="rfm2pi"
+    else
+        hardware="EmonPi"
     fi
     echo "Hardware detected: $hardware"
     
@@ -45,12 +49,12 @@ if [ "$emonSD_pi_env" = "1" ]; then
 
         # Display update message on LCD
         echo "Display update message on LCD"
-        sudo $openenergymonitor_dir/emonpi/lcd/./emonPiLCD_update.py
+        $openenergymonitor_dir/emonpi/lcd/emonPiLCD_write.py 'Updating........' 'DO NOT UNPLUG!  '
     fi
+    exit 0
     
     # Ensure logrotate configuration has correct permissions
     sudo chown root:pi $openenergymonitor_dir/EmonScripts/defaults/etc/logrotate.d/*
-
 fi
 
 if [ "$type" == "all" ] || [ "$type" == "emonhub" ]; then
